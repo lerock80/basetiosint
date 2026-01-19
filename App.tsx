@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Shield, Settings, LogOut, Plus, Trash2, Edit3, ExternalLink, Menu, X, Globe, User, Upload, FileText, LayoutGrid, RotateCcw } from 'lucide-react';
+import { Search, Shield, Settings, LogOut, Plus, Trash2, Edit3, ExternalLink, Menu, X, Globe, User, Upload, FileText, LayoutGrid, RotateCcw, Filter } from 'lucide-react';
 import { Tool, Category, User as UserType, View } from './types';
 import { INITIAL_CATEGORIES, INITIAL_TOOLS } from './constants';
 
@@ -139,10 +139,7 @@ const App: React.FC = () => {
 
       lines.forEach((line, index) => {
         const trimmedLine = line.trim();
-        // Skip empty lines or noise like ",,"
         if (!trimmedLine || trimmedLine === ',,' || trimmedLine === ';;') return;
-        
-        // Skip header
         if (trimmedLine.toLowerCase().startsWith('categoria,') || trimmedLine.toLowerCase().startsWith('categoria;')) return;
 
         const parts = trimmedLine.includes(';') ? trimmedLine.split(';') : trimmedLine.split(',');
@@ -201,7 +198,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-6">
           <div className="flex items-center gap-2 px-3 py-1 bg-slate-900/50 rounded-full border border-slate-800">
             <LayoutGrid className="w-3 h-3 text-sky-500" />
@@ -228,7 +224,6 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile menu toggle */}
         <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <X /> : <Menu />}
         </button>
@@ -253,7 +248,7 @@ const App: React.FC = () => {
         {view === 'home' && (
           <>
             {/* Hero */}
-            <section className="text-center mb-16">
+            <section className="text-center mb-10">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-sky-500/10 border border-sky-500/20 rounded-full mb-6">
                 <Shield className="w-4 h-4 text-sky-400" />
                 <span className="text-xs font-bold text-sky-400 tracking-widest uppercase">Base de Dados Unificada: {tools.length} Ferramentas</span>
@@ -261,7 +256,7 @@ const App: React.FC = () => {
               <h2 className="text-5xl md:text-6xl font-extrabold mb-4 neon-text tracking-tighter">
                 OSINT <span className="text-sky-500">Analytics</span>
               </h2>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10 uppercase tracking-[0.2em] font-light">
+              <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-8 uppercase tracking-[0.2em] font-light">
                 Inteligência de Fontes Abertas & Contexto Brasileiro
               </p>
               
@@ -278,84 +273,83 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Content Body */}
-            <div className="flex flex-col lg:flex-row gap-12">
-              {/* Categories Sidebar */}
-              <aside className="lg:w-72 flex-shrink-0">
-                <div className="sticky top-28">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2 border-l-2 border-sky-500 pl-3">
-                    <Globe className="w-4 h-4" /> Categorias
+            {/* Categories Fixed Menu - Multi-line Grid to avoid scrolling */}
+            <div className="z-40 glass border border-sky-900/30 mb-8 rounded-[2rem] overflow-hidden backdrop-blur-xl">
+              <div className="p-6 md:p-8">
+                <div className="flex items-center gap-4 mb-6 border-b border-slate-800 pb-4">
+                  <Filter className="w-4 h-4 text-sky-500" />
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest">
+                    Explorar por Categoria
                   </h3>
-                  <div className="flex flex-wrap lg:flex-col gap-2.5 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-sky-900">
-                    <button 
-                      onClick={() => setActiveCategory('all')}
-                      className={`px-4 py-3 rounded-xl text-left text-sm font-semibold transition-all border ${activeCategory === 'all' ? 'bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/20' : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span>Todas as ferramentas</span>
-                        <span className="text-[10px] opacity-60 bg-white/10 px-1.5 rounded">{tools.length}</span>
-                      </div>
-                    </button>
-                    {categories.map(cat => {
-                      const count = tools.filter(t => t.categoryId === cat.id).length;
-                      return (
-                        <button 
-                          key={cat.id}
-                          onClick={() => setActiveCategory(cat.id)}
-                          className={`px-4 py-3 rounded-xl text-left text-sm font-semibold transition-all border ${activeCategory === cat.id ? 'bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/20' : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span>{cat.name}</span>
-                            <span className="text-[10px] opacity-60 bg-white/10 px-1.5 rounded">{count}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
-              </aside>
-
-              {/* Tools Grid */}
-              <div className="flex-1">
-                <div className="mb-6 flex items-center justify-between">
-                  <span className="text-slate-500 text-sm font-medium">Resultados: <span className="text-white font-bold">{filteredTools.length}</span></span>
-                  {activeCategory !== 'all' && (
-                    <button onClick={() => setActiveCategory('all')} className="text-sky-500 text-xs font-bold uppercase hover:underline">Limpar Categoria</button>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredTools.map(tool => (
-                    <div key={tool.id} className="glass p-6 rounded-2xl flex flex-col group hover:border-sky-500/50 transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-500/10">
-                      <div className="flex items-start justify-between mb-4">
-                        <span className="text-[10px] font-bold px-2.5 py-1 bg-sky-950/50 text-sky-400 rounded-lg border border-sky-500/20 uppercase tracking-widest truncate max-w-[150px]">
-                          {categories.find(c => c.id === tool.categoryId)?.name || 'Outros'}
-                        </span>
-                        <a href={tool.url} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-slate-800/80 rounded-xl hover:bg-sky-500 transition-colors group/link border border-slate-700">
-                          <ExternalLink className="w-4 h-4 text-slate-300 group-hover/link:text-white" />
-                        </a>
-                      </div>
-                      <h4 className="text-lg font-bold mb-2 group-hover:text-sky-400 transition-colors">{tool.name}</h4>
-                      <p className="text-slate-400 text-xs leading-relaxed mb-8 flex-1 line-clamp-3">{tool.description}</p>
-                      <a 
-                        href={tool.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="w-full text-center py-2.5 bg-slate-800/50 hover:bg-sky-500 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-700 hover:border-sky-400"
+                {/* Grid Layout: Columns adjust based on screen size, wrapping automatically */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+                  <button 
+                    onClick={() => setActiveCategory('all')}
+                    className={`px-3 py-2.5 rounded-xl text-[10px] md:text-xs font-bold transition-all border flex items-center justify-between gap-2 text-center ${activeCategory === 'all' ? 'bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/20' : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}
+                  >
+                    <span className="truncate">Todos Ativos</span>
+                    <span className="flex-shrink-0 text-[10px] opacity-60 bg-white/10 px-1.5 py-0.5 rounded">{tools.length}</span>
+                  </button>
+                  {categories.map(cat => {
+                    const count = tools.filter(t => t.categoryId === cat.id).length;
+                    return (
+                      <button 
+                        key={cat.id}
+                        onClick={() => setActiveCategory(cat.id)}
+                        className={`px-3 py-2.5 rounded-xl text-[10px] md:text-xs font-bold transition-all border flex items-center justify-between gap-2 text-center ${activeCategory === cat.id ? 'bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/20' : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}
                       >
-                        Abrir Ferramenta
-                      </a>
-                    </div>
-                  ))}
+                        <span className="truncate">{cat.name}</span>
+                        <span className="flex-shrink-0 text-[10px] opacity-60 bg-white/10 px-1.5 py-0.5 rounded">{count}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                {filteredTools.length === 0 && (
-                  <div className="text-center py-24 bg-slate-900/10 rounded-[3rem] border border-dashed border-slate-800 flex flex-col items-center">
-                    <div className="p-4 bg-slate-900 rounded-full mb-4">
-                      <Search className="w-8 h-8 text-slate-700" />
-                    </div>
-                    <p className="text-slate-500 font-medium">Nenhum dado encontrado para sua busca.</p>
-                  </div>
+              </div>
+            </div>
+
+            {/* Tools Grid Area */}
+            <div className="w-full">
+              <div className="mb-6 flex items-center justify-between">
+                <span className="text-slate-500 text-sm font-medium">Filtro atual: <span className="text-sky-400 font-bold">{activeCategory === 'all' ? 'Todos' : categories.find(c => c.id === activeCategory)?.name}</span> — <span className="text-white font-bold">{filteredTools.length}</span> itens</span>
+                {activeCategory !== 'all' && (
+                  <button onClick={() => setActiveCategory('all')} className="text-sky-500 text-xs font-bold uppercase hover:underline flex items-center gap-1">
+                    <X className="w-3 h-3" /> Limpar Filtro
+                  </button>
                 )}
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredTools.map(tool => (
+                  <div key={tool.id} className="glass p-6 rounded-2xl flex flex-col group hover:border-sky-500/50 transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-500/10">
+                    <div className="flex items-start justify-between mb-4">
+                      <span className="text-[10px] font-bold px-2.5 py-1 bg-sky-950/50 text-sky-400 rounded-lg border border-sky-500/20 uppercase tracking-widest truncate max-w-[150px]">
+                        {categories.find(c => c.id === tool.categoryId)?.name || 'Outros'}
+                      </span>
+                      <a href={tool.url} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-slate-800/80 rounded-xl hover:bg-sky-500 transition-colors group/link border border-slate-700">
+                        <ExternalLink className="w-4 h-4 text-slate-300 group-hover/link:text-white" />
+                      </a>
+                    </div>
+                    <h4 className="text-lg font-bold mb-2 group-hover:text-sky-400 transition-colors truncate">{tool.name}</h4>
+                    <p className="text-slate-400 text-xs leading-relaxed mb-8 flex-1 line-clamp-3">{tool.description}</p>
+                    <a 
+                      href={tool.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full text-center py-2.5 bg-slate-800/50 hover:bg-sky-500 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-700 hover:border-sky-400"
+                    >
+                      Acessar Fonte
+                    </a>
+                  </div>
+                ))}
+              </div>
+              {filteredTools.length === 0 && (
+                <div className="text-center py-24 bg-slate-900/10 rounded-[3rem] border border-dashed border-slate-800 flex flex-col items-center">
+                  <div className="p-4 bg-slate-900 rounded-full mb-4">
+                    <Search className="w-8 h-8 text-slate-700" />
+                  </div>
+                  <p className="text-slate-500 font-medium">Nenhum ativo corresponde aos parâmetros de busca.</p>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -426,7 +420,6 @@ const App: React.FC = () => {
             </header>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-              {/* Categories Management */}
               <section className="glass p-8 rounded-[2rem]">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-bold flex items-center gap-2"><Globe className="w-5 h-5 text-sky-400" /> Categorias</h3>
@@ -459,7 +452,6 @@ const App: React.FC = () => {
                 </div>
               </section>
 
-              {/* Tools Management */}
               <section className="glass p-8 rounded-[2rem] xl:col-span-2">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
                   <h3 className="text-xl font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-sky-400" /> Inventário de Ativos</h3>
