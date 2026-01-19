@@ -1,0 +1,21 @@
+
+export interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  categoryId: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  role: 'admin' | 'user';
+}
+
+export type View = 'home' | 'admin-login' | 'admin-panel';
