@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Shield, Settings, LogOut, Plus, Trash2, Edit3, ExternalLink, Menu, X, Globe, User, Upload, FileText, LayoutGrid, RotateCcw, Filter } from 'lucide-react';
+import { Search, Shield, Settings, LogOut, Plus, Trash2, Edit3, ExternalLink, Menu, X, Globe, User, Upload, FileText, LayoutGrid, RotateCcw, Filter, Key, Users, UserPlus, Lock } from 'lucide-react';
 import { Tool, Category, User as UserType, View } from './types';
 import { INITIAL_CATEGORIES, INITIAL_TOOLS } from './constants';
 
@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,7 +30,7 @@ const App: React.FC = () => {
     else setCategories(INITIAL_CATEGORIES);
 
     if (savedUsers) setUsers(JSON.parse(savedUsers));
-    else setUsers([{ id: '1', username: 'Admin', role: 'admin' }]);
+    else setUsers([{ id: '1', username: 'Admin', password: 'baseti123456', role: 'admin' }]);
   }, []);
 
   useEffect(() => {
@@ -56,8 +57,10 @@ const App: React.FC = () => {
 
   // Auth
   const handleLogin = (u: string, p: string) => {
-    if (u === 'Admin' && p === 'baseti123456') {
+    const foundUser = users.find(usr => usr.username === u && usr.password === p);
+    if (foundUser) {
       setIsLoggedIn(true);
+      setCurrentUser(foundUser);
       setView('admin-panel');
     } else {
       alert('Credenciais inválidas!');
@@ -66,6 +69,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
     setView('home');
   };
 
@@ -90,8 +94,10 @@ const App: React.FC = () => {
   };
 
   const removeCategory = (id: string) => {
-    setCategories(categories.filter(c => c.id !== id));
-    setTools(tools.filter(t => t.categoryId !== id));
+    if (confirm('Atenção: Remover esta categoria excluirá também todas as ferramentas associadas a ela. Continuar?')) {
+      setCategories(categories.filter(c => c.id !== id));
+      setTools(tools.filter(t => t.categoryId !== id));
+    }
   };
 
   const resetDatabase = () => {
@@ -111,16 +117,33 @@ const App: React.FC = () => {
   };
 
   // CRUD Handlers (Users)
-  const addUser = (username: string) => {
-    setUsers([...users, { id: Date.now().toString(), username, role: 'user' }]);
+  const addUser = (username: string, p: string, role: 'admin' | 'user') => {
+    if (users.find(u => u.username === username)) {
+      alert('Nome de usuário já existe!');
+      return;
+    }
+    setUsers([...users, { id: Date.now().toString(), username, password: p, role }]);
+    alert('Usuário criado com sucesso!');
   };
 
   const removeUser = (id: string) => {
-    if (users.find(u => u.id === id)?.username === 'Admin') {
+    const user = users.find(u => u.id === id);
+    if (user?.username === 'Admin') {
       alert('O usuário Admin principal não pode ser removido.');
       return;
     }
-    setUsers(users.filter(u => u.id !== id));
+    if (user?.id === currentUser?.id) {
+      alert('Você não pode remover a si mesmo enquanto estiver logado.');
+      return;
+    }
+    if (confirm(`Remover usuário ${user?.username}?`)) {
+      setUsers(users.filter(u => u.id !== id));
+    }
+  };
+
+  const updateUser = (id: string, updates: Partial<UserType>) => {
+    setUsers(users.map(u => u.id === id ? { ...u, ...updates } : u));
+    alert('Usuário atualizado!');
   };
 
   // Import Handler
@@ -144,9 +167,9 @@ const App: React.FC = () => {
 
         const parts = trimmedLine.includes(';') ? trimmedLine.split(';') : trimmedLine.split(',');
         if (parts.length >= 3) {
-          const catName = parts[0].trim();
-          const toolName = parts[1].trim();
-          const toolUrl = parts[2].trim();
+          const catName = parts[0].replace(/"/g, '').trim();
+          const toolName = parts[1].replace(/"/g, '').trim();
+          const toolUrl = parts[2].replace(/"/g, '').trim();
 
           if (catName && toolName && toolUrl) {
             let catId = tempCategories.find(c => c.name.toLowerCase() === catName.toLowerCase())?.id;
@@ -199,6 +222,12 @@ const App: React.FC = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
+          {currentUser && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-sky-500/10 rounded-full border border-sky-500/20">
+              <User className="w-3 h-3 text-sky-400" />
+              <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">{currentUser.username}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 px-3 py-1 bg-slate-900/50 rounded-full border border-slate-800">
             <LayoutGrid className="w-3 h-3 text-sky-500" />
             <span className="text-xs font-bold text-slate-300">{tools.length} Ativos</span>
@@ -209,7 +238,7 @@ const App: React.FC = () => {
               onClick={() => setView('admin-login')} 
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-slate-700"
             >
-              <User className="w-4 h-4" /> Painel
+              <Lock className="w-4 h-4" /> Painel
             </button>
           ) : (
             <>
@@ -273,7 +302,7 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Categories Fixed Menu - Multi-line Grid to avoid scrolling */}
+            {/* Categories Fixed Menu */}
             <div className="z-40 glass border border-sky-900/30 mb-8 rounded-[2rem] overflow-hidden backdrop-blur-xl">
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-4 mb-6 border-b border-slate-800 pb-4">
@@ -282,7 +311,6 @@ const App: React.FC = () => {
                     Explorar por Categoria
                   </h3>
                 </div>
-                {/* Grid Layout: Columns adjust based on screen size, wrapping automatically */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
                   <button 
                     onClick={() => setActiveCategory('all')}
@@ -342,14 +370,6 @@ const App: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {filteredTools.length === 0 && (
-                <div className="text-center py-24 bg-slate-900/10 rounded-[3rem] border border-dashed border-slate-800 flex flex-col items-center">
-                  <div className="p-4 bg-slate-900 rounded-full mb-4">
-                    <Search className="w-8 h-8 text-slate-700" />
-                  </div>
-                  <p className="text-slate-500 font-medium">Nenhum ativo corresponde aos parâmetros de busca.</p>
-                </div>
-              )}
             </div>
           </>
         )}
@@ -362,7 +382,7 @@ const App: React.FC = () => {
                   <Shield className="w-12 h-12 text-sky-500" />
                 </div>
                 <h2 className="text-3xl font-bold mb-2">Login Administrativo</h2>
-                <p className="text-slate-400 text-sm">Gerencie a base de ferramentas OSINT</p>
+                <p className="text-slate-400 text-sm">Autenticação de Operador OSINT</p>
               </div>
               <form onSubmit={(e) => {
                 e.preventDefault();
@@ -373,14 +393,14 @@ const App: React.FC = () => {
                 <div className="space-y-5">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Usuário</label>
-                    <input name="user" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 focus:ring-2 focus:ring-sky-500/50 outline-none transition text-white" placeholder="Admin" />
+                    <input name="user" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 focus:ring-2 focus:ring-sky-500/50 outline-none transition text-white" placeholder="Admin" required />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Senha</label>
-                    <input name="pass" type="password" className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 focus:ring-2 focus:ring-sky-500/50 outline-none transition text-white" placeholder="••••••••" />
+                    <input name="pass" type="password" className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 focus:ring-2 focus:ring-sky-500/50 outline-none transition text-white" placeholder="••••••••" required />
                   </div>
                   <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-sky-500/20 transition-all">
-                    Entrar no Sistema
+                    Entrar no Terminal
                   </button>
                   <button type="button" onClick={() => setView('home')} className="w-full text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-white transition py-2">
                     Cancelar
@@ -395,8 +415,8 @@ const App: React.FC = () => {
           <div className="space-y-12">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800 pb-8">
               <div>
-                <h2 className="text-4xl font-extrabold tracking-tighter">Gestão de <span className="text-sky-500">Dados</span></h2>
-                <p className="text-slate-400 mt-1">Total de registros: <span className="text-white font-bold">{tools.length}</span></p>
+                <h2 className="text-4xl font-extrabold tracking-tighter">Gestão de <span className="text-sky-500">Operações</span></h2>
+                <p className="text-slate-400 mt-1">Total de registros: <span className="text-white font-bold">{tools.length}</span> ativos — <span className="text-white font-bold">{users.length}</span> operadores</p>
               </div>
               
               <div className="flex flex-wrap gap-3">
@@ -413,39 +433,123 @@ const App: React.FC = () => {
                 >
                   <RotateCcw className="w-4 h-4" /> Resetar
                 </button>
-                <button onClick={handleLogout} className="flex items-center gap-2 bg-slate-800 hover:bg-red-900/30 text-slate-300 hover:text-red-400 px-5 py-2.5 rounded-xl font-bold text-sm transition-all border border-slate-700">
-                  <LogOut className="w-4 h-4" /> Sair
-                </button>
               </div>
             </header>
 
+            {/* User Management Section */}
+            <section className="glass p-8 rounded-[2rem] border-sky-500/10">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-sky-500/10 rounded-2xl border border-sky-500/20">
+                    <Users className="w-6 h-6 text-sky-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Operadores do Sistema</h3>
+                    <p className="text-xs text-slate-500">Controle de acesso ao terminal administrativo</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    const u = prompt('Nome de usuário:');
+                    const p = prompt('Senha:');
+                    if (u && p) addUser(u, p, 'admin');
+                  }}
+                  className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-sky-500/10"
+                >
+                  <UserPlus className="w-4 h-4" /> Novo Operador
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {users.map(u => (
+                  <div key={u.id} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 hover:border-sky-500/30 transition-all">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${u.role === 'admin' ? 'bg-sky-500/10 text-sky-400' : 'bg-slate-800 text-slate-400'}`}>
+                          <Shield className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold block">{u.username}</span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{u.role}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => {
+                            const newPass = prompt('Nova senha para ' + u.username + ':');
+                            if (newPass) updateUser(u.id, { password: newPass });
+                          }}
+                          className="p-2 text-slate-500 hover:text-sky-400 transition-colors"
+                          title="Alterar Senha"
+                        >
+                          <Key className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const newName = prompt('Novo nome de usuário:', u.username);
+                            if (newName) updateUser(u.id, { username: newName });
+                          }}
+                          className="p-2 text-slate-500 hover:text-sky-400 transition-colors"
+                          title="Editar Nome"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => removeUser(u.id)}
+                          className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-600 font-mono">
+                      <Lock className="w-3 h-3" />
+                      <span>Senha Protegida</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-              <section className="glass p-8 rounded-[2rem]">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-xl font-bold flex items-center gap-2"><Globe className="w-5 h-5 text-sky-400" /> Categorias</h3>
+              {/* Categorias Section - Agora FULL WIDTH e com GRID organizado */}
+              <section className="glass p-8 rounded-[2rem] xl:col-span-2">
+                <div className="flex items-center justify-between mb-8 border-b border-slate-800 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-sky-500/10 rounded-2xl border border-sky-500/20">
+                      <Globe className="w-6 h-6 text-sky-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Gestão de Categorias</h3>
+                      <p className="text-xs text-slate-500">Organize os filtros do portal principal</p>
+                    </div>
+                  </div>
                   <button 
                     onClick={() => {
                       const name = prompt('Nome da nova categoria:');
                       if (name) addCategory(name);
                     }}
-                    className="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl hover:bg-sky-500 transition-all hover:text-white border border-sky-500/20"
+                    className="bg-sky-500 hover:bg-sky-600 px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-sky-500/10 transition-all"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" /> Nova Categoria
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+                
+                {/* Grid Multi-coluna sem scroll interno */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {categories.map(cat => (
-                    <div key={cat.id} className="bg-slate-900/30 p-4 rounded-2xl flex items-center justify-between border border-slate-800">
+                    <div key={cat.id} className="bg-slate-900/40 p-4 rounded-xl flex items-center justify-between border border-slate-800 group hover:border-sky-500/30 transition-all">
                       <div className="truncate pr-2">
-                         <span className="font-bold text-sm block truncate">{cat.name}</span>
-                         <span className="text-[10px] text-slate-600 font-bold">{tools.filter(t => t.categoryId === cat.id).length} itens</span>
+                         <span className="font-bold text-xs block truncate text-slate-200 group-hover:text-white">{cat.name}</span>
+                         <span className="text-[9px] text-slate-500 font-bold uppercase">{tools.filter(t => t.categoryId === cat.id).length} Ativos</span>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
                         <button onClick={() => {
                           const name = prompt('Novo nome:', cat.name);
                           if (name) setCategories(categories.map(c => c.id === cat.id ? { ...c, name } : c));
-                        }} className="p-2 text-slate-500 hover:text-sky-400 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                        <button onClick={() => removeCategory(cat.id)} className="p-2 text-slate-500 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        }} className="p-1.5 text-slate-500 hover:text-sky-400 transition-colors" title="Editar"><Edit3 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => removeCategory(cat.id)} className="p-1.5 text-slate-500 hover:text-red-400 transition-colors" title="Excluir"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -477,16 +581,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="bg-sky-500/5 border border-sky-500/20 p-4 rounded-2xl mb-8 flex items-center gap-4">
-                   <div className="bg-sky-500/10 p-2.5 rounded-xl">
-                      <FileText className="w-6 h-6 text-sky-400" />
-                   </div>
-                   <div className="text-sm">
-                      <span className="text-sky-400 font-bold block">Modelo de Tabela (CSV):</span>
-                      <p className="text-slate-400 text-xs italic">A planilha deve conter 3 colunas: <code className="text-white px-1 bg-slate-900 rounded">Categoria</code>, <code className="text-white px-1 bg-slate-900 rounded">Nome</code>, <code className="text-white px-1 bg-slate-900 rounded">Link</code>.</p>
-                   </div>
-                </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
@@ -543,7 +637,7 @@ const App: React.FC = () => {
            <Shield className="w-5 h-5 text-sky-500/40" />
            <span className="text-xl font-black text-slate-800 uppercase tracking-[0.3em]">Base TI OSINT</span>
         </div>
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">© 2024 Base de Conhecimento Centralizada. Itens Ativos: {tools.length}</p>
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">© 2024 Terminal Central de Operações. Ativos: {tools.length}</p>
       </footer>
     </div>
   );
