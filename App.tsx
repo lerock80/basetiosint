@@ -207,19 +207,19 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <nav className="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-sky-900/50">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('home')}>
-          <div className="p-2 bg-sky-500 rounded-lg shadow-lg shadow-sky-500/20">
+        <a href="https://basetic.com.br/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 cursor-pointer group">
+          <div className="p-2 bg-sky-500 rounded-lg shadow-lg shadow-sky-500/20 group-hover:scale-110 transition-transform">
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white uppercase">
+            <h1 className="text-xl font-bold tracking-tight text-white uppercase group-hover:text-sky-400 transition-colors">
               Base TI <span className="text-sky-400">- OSINT</span>
             </h1>
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block -mt-1">
               Terminal de Operações
             </span>
           </div>
-        </div>
+        </a>
 
         <div className="hidden md:flex items-center gap-6">
           {currentUser && (
@@ -633,10 +633,10 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="py-16 px-6 border-t border-slate-900/50 text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-           <Shield className="w-5 h-5 text-sky-500/40" />
-           <span className="text-xl font-black text-slate-800 uppercase tracking-[0.3em]">Base TI OSINT</span>
-        </div>
+        <a href="https://basetic.com.br/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 mb-4 group inline-flex">
+           <Shield className="w-5 h-5 text-sky-500/40 group-hover:text-sky-500 transition-colors" />
+           <span className="text-xl font-black text-slate-800 uppercase tracking-[0.3em] group-hover:text-slate-600 transition-colors">Base TI OSINT</span>
+        </a>
         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">© 2024 Terminal Central de Operações. Ativos: {tools.length}</p>
       </footer>
     </div>

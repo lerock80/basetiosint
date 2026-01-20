@@ -1,5 +1,5 @@
 {
-  "name": "Base TI - OSINT Tools Hub",
-  "description": "Uma plataforma moderna e centralizada para ferramentas de Inteligência de Fontes Abertas (OSINT), com gestão administrativa completa.",
+  "name": "Base TI - OSINT Tools",
+  "description": "Uma plataforma moderna e centralizada para ferramentas de Inteligência de Fontes Abertas (OSINT)",
   "requestFramePermissions": []
 }
